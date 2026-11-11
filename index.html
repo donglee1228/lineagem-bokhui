@@ -1,0 +1,307 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>복희섭 장비보유현황</title>
+<meta name="description" content="복희섭 서버 혈맹 장비·특화템 현황">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath d='M32 4 L56 12 V30 C56 45 46 55 32 60 C18 55 8 45 8 30 V12 Z' fill='%231c1f26' stroke='%23c9a24a' stroke-width='4'/%3E%3Cpath d='M32 14 V44 M24 38 H40 M32 44 V50' stroke='%23c9a24a' stroke-width='4' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=Noto+Serif+KR:wght@700;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#1c1f26; --bg2:#22262f; --card:#262a34; --card2:#2c313c; --line:#3a3f4b;
+  --text:#e6e2d8; --muted:#9a978f; --dim:#6b6c70;
+  --gold:#c9a24a; --gold2:#e3c47a; --red:#8e2a2a; --red2:#b23b3b;
+  --own:#c9a24a; --ownbg:rgba(201,162,74,.14);
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{scroll-behavior:smooth}
+body{
+  margin:0; background:var(--bg); color:var(--text);
+  font-family:"Noto Sans KR",system-ui,sans-serif; font-size:15px; line-height:1.65;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .05 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  overflow-x:hidden;
+}
+a{color:var(--gold2)}
+.wrap{max-width:1080px; margin:0 auto; padding:0 16px}
+
+/* 상단 메뉴 */
+.topnav{position:sticky; top:0; z-index:10; background:rgba(22,24,30,.92); backdrop-filter:blur(6px); border-bottom:1px solid var(--line)}
+.topnav .wrap{display:flex; align-items:center; gap:14px; height:52px; overflow-x:auto; white-space:nowrap; scrollbar-width:none}
+.topnav .wrap::-webkit-scrollbar{display:none}
+.brand{font-family:"Noto Serif KR",serif; font-weight:900; color:var(--gold); text-decoration:none; font-size:16px; margin-right:auto}
+.topnav a.nl{color:var(--muted); text-decoration:none; font-size:14px; padding:6px 2px}
+.topnav a.nl:hover{color:var(--gold2)}
+
+/* 히어로 */
+.hero{position:relative; padding:64px 0 48px; border-bottom:1px solid var(--line);
+  background:radial-gradient(ellipse at 50% 0%, rgba(201,162,74,.12), transparent 60%),
+             linear-gradient(180deg, #171a20 0%, var(--bg) 100%)}
+.hero::after{content:""; position:absolute; left:50%; bottom:-1px; transform:translateX(-50%); width:160px; height:2px; background:linear-gradient(90deg,transparent,var(--gold),transparent)}
+.hero .crest{width:56px; height:56px; display:block; margin:0 auto 18px}
+.hero h1{font-family:"Noto Serif KR",serif; font-weight:900; text-align:center; margin:0; font-size:clamp(28px,6vw,46px); letter-spacing:.02em;
+  background:linear-gradient(180deg,#f0d896,#b8902f); -webkit-background-clip:text; background-clip:text; color:transparent}
+.hero p.sub{text-align:center; color:var(--muted); margin:10px 0 0; font-size:15px}
+.hero p.clan{text-align:center; color:var(--gold2); margin:6px 0 0; font-size:14px}
+.stats{display:flex; justify-content:center; gap:12px; margin-top:28px; flex-wrap:wrap}
+.stat{min-width:120px; background:rgba(38,42,52,.7); border:1px solid var(--line); border-radius:8px; padding:10px 18px; text-align:center}
+.stat b{display:block; font-size:22px; color:var(--gold2); font-weight:700}
+.stat span{font-size:12px; color:var(--muted)}
+.updated{text-align:center; color:var(--dim); font-size:12px; margin-top:14px}
+
+/* 섹션 */
+section{padding:48px 0 8px}
+.sec-head{display:flex; align-items:baseline; gap:12px; margin-bottom:18px; border-left:3px solid var(--red2); padding-left:12px}
+.sec-head h2{font-family:"Noto Serif KR",serif; font-weight:900; font-size:22px; margin:0; color:var(--text)}
+.sec-head small{color:var(--muted); font-size:13px}
+
+.panel{background:var(--card); border:1px solid var(--line); border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,.25)}
+
+/* 필터 */
+.filters{display:flex; gap:10px; flex-wrap:wrap; padding:14px; border-bottom:1px solid var(--line)}
+.filters input,.filters select{background:var(--bg2); color:var(--text); border:1px solid var(--line); border-radius:6px; padding:9px 12px; font:inherit; font-size:14px; min-width:0}
+.filters input{flex:1 1 200px}
+.filters select{flex:0 1 auto}
+.filters input:focus,.filters select:focus{outline:none; border-color:var(--gold)}
+.result-count{padding:10px 14px 0; color:var(--muted); font-size:13px}
+
+/* 표 */
+.table-scroll{overflow-x:auto; -webkit-overflow-scrolling:touch}
+table{border-collapse:separate; border-spacing:0; width:100%; font-size:14px}
+th,td{padding:10px 12px; border-bottom:1px solid var(--line); text-align:center; white-space:nowrap}
+thead th{background:var(--card2); color:var(--gold2); font-weight:700; font-size:13px; position:sticky; top:0}
+th.name,td.name{text-align:left; position:sticky; left:0; background:var(--card); z-index:1; border-right:1px solid var(--line)}
+thead th.name{background:var(--card2); z-index:2}
+td.name b{font-weight:700}
+td.name .cls{display:block; font-size:12px; color:var(--muted)}
+tbody tr:hover td{background:#2a2e38}
+tbody tr:hover td.name{background:#2a2e38}
+.badge{display:inline-block; min-width:52px; padding:3px 10px; border-radius:999px; font-size:12px; font-weight:700; letter-spacing:.02em}
+.badge.own{background:var(--ownbg); color:var(--gold2); border:1px solid rgba(201,162,74,.55)}
+.badge.none{background:transparent; color:var(--dim); border:1px solid #3a3d45; font-weight:500}
+td.cnt{color:var(--gold2); font-weight:700}
+
+/* 빈 상태 */
+.empty{padding:40px 16px; text-align:center; color:var(--muted)}
+.empty strong{display:block; color:var(--text); font-size:16px; margin-bottom:6px; font-weight:500}
+.empty span{font-size:13px; color:var(--dim); word-break:keep-all}
+
+/* 특화템 카드 */
+.grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:14px}
+.sp-card{background:var(--card); border:1px solid var(--line); border-top:2px solid var(--gold); border-radius:10px; padding:16px}
+.sp-card h3{margin:0 0 4px; font-size:16px; font-weight:700; display:flex; justify-content:space-between; gap:8px; align-items:baseline}
+.sp-card h3 em{font-style:normal; color:var(--gold2); font-size:14px; white-space:nowrap}
+.sp-card .members{display:flex; flex-wrap:wrap; gap:6px; margin-top:10px}
+.chip{background:var(--bg2); border:1px solid var(--line); border-radius:6px; padding:3px 9px; font-size:13px}
+.sp-card .no{color:var(--dim); font-size:13px; margin-top:10px}
+
+/* 공지 */
+.posts{display:flex; flex-direction:column; gap:14px}
+.post{background:var(--card); border:1px solid var(--line); border-radius:10px; padding:20px 22px}
+.post time{color:var(--red2); font-size:12px; font-weight:700; letter-spacing:.04em}
+.post h3{margin:4px 0 10px; font-family:"Noto Serif KR",serif; font-size:19px; font-weight:700; color:var(--gold2)}
+.post .body{white-space:pre-wrap; word-break:keep-all; overflow-wrap:anywhere; color:var(--text)}
+
+footer{margin-top:56px; padding:24px 0 40px; border-top:1px solid var(--line); color:var(--dim); font-size:12px; text-align:center}
+
+@media (max-width:600px){
+  .hero{padding:44px 0 36px}
+  section{padding:36px 0 4px}
+  .stat{min-width:96px; padding:8px 12px}
+  .post{padding:16px}
+  th,td{padding:9px 10px}
+}
+</style>
+</head>
+<body>
+
+<nav class="topnav">
+  <div class="wrap">
+    <a class="brand" href="#top">복희섭 장비보유현황</a>
+    <a class="nl" href="#gear">장비현황</a>
+    <a class="nl" href="#special">특화템</a>
+    <a class="nl" href="#notice">공지</a>
+  </div>
+</nav>
+
+<header class="hero" id="top">
+  <div class="wrap">
+    <svg class="crest" viewBox="0 0 64 64" aria-hidden="true">
+      <path d="M32 4 L56 12 V30 C56 45 46 55 32 60 C18 55 8 45 8 30 V12 Z" fill="#1c1f26" stroke="#c9a24a" stroke-width="3"/>
+      <path d="M32 14 V44 M24 38 H40 M32 44 V50" stroke="#c9a24a" stroke-width="3.5" stroke-linecap="round" fill="none"/>
+    </svg>
+    <h1>복희섭 장비보유현황</h1>
+    <p class="sub">복희섭 서버 혈맹 장비·특화템 현황</p>
+    <p class="clan" id="clanName" hidden></p>
+    <div class="stats">
+      <div class="stat"><b id="stMembers">0</b><span>혈원</span></div>
+      <div class="stat"><b id="stGear">0</b><span>장비 항목</span></div>
+      <div class="stat"><b id="stSpecial">0</b><span>특화템</span></div>
+    </div>
+    <div class="updated" id="updated" hidden></div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section id="gear">
+    <div class="sec-head"><h2>혈원 장비 보유현황</h2><small>혈원별 장비 보유 여부</small></div>
+    <div class="panel">
+      <div class="filters" id="gearFilters">
+        <input type="search" id="q" placeholder="혈원 이름 검색" aria-label="혈원 이름 검색">
+        <select id="fItem" aria-label="장비 선택"><option value="">전체 장비</option></select>
+        <select id="fState" aria-label="보유 상태">
+          <option value="">전체 상태</option>
+          <option value="own">보유</option>
+          <option value="none">미보유</option>
+        </select>
+      </div>
+      <div class="result-count" id="resultCount"></div>
+      <div id="gearBody"></div>
+    </div>
+  </section>
+
+  <section id="special">
+    <div class="sec-head"><h2>특화템 현황</h2><small>특화템별 보유 혈원</small></div>
+    <div id="specialBody"></div>
+  </section>
+
+  <section id="notice">
+    <div class="sec-head"><h2>공지</h2><small>혈맹 소식과 안내</small></div>
+    <div id="noticeBody"></div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap">복희섭 서버 혈맹 장비보유현황</div>
+</footer>
+
+<script src="장비현황데이터.js"></script>
+<script>
+(function(){
+  "use strict";
+  var raw = window.복희섭자료 || {};
+  function arr(v){ return Array.isArray(v) ? v : []; }
+  function str(v){ return (v === undefined || v === null) ? "" : String(v).trim(); }
+  function esc(s){ return str(s).replace(/[&<>"']/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]; }); }
+
+  var items = arr(raw.장비항목).map(str).filter(Boolean);
+  var specials = arr(raw.특화템).map(str).filter(Boolean);
+  var members = arr(raw.혈원).filter(function(m){ return m && str(m.이름); }).map(function(m){
+    return {
+      name: str(m.이름),
+      cls: str(m.클래스),
+      gear: arr(m.보유장비).map(str),
+      sp: arr(m.보유특화템).map(str)
+    };
+  });
+  var posts = arr(raw.공지).filter(function(p){ return p && (str(p.제목) || str(p.본문)); }).slice().sort(function(a,b){
+    return str(b.날짜).localeCompare(str(a.날짜));
+  });
+
+  function $(id){ return document.getElementById(id); }
+  function emptyBox(title, hint){
+    return '<div class="empty"><strong>' + esc(title) + '</strong><span>' + esc(hint) + '</span></div>';
+  }
+
+  // 상단 정보
+  $("stMembers").textContent = members.length;
+  $("stGear").textContent = items.length;
+  $("stSpecial").textContent = specials.length;
+  if (str(raw.혈맹이름)) { $("clanName").textContent = str(raw.혈맹이름) + " 혈맹"; $("clanName").hidden = false; }
+  if (str(raw.갱신일)) { $("updated").textContent = "마지막 갱신 " + str(raw.갱신일); $("updated").hidden = false; }
+
+  // 장비 필터 옵션
+  items.forEach(function(it){
+    var o = document.createElement("option"); o.value = it; o.textContent = it; $("fItem").appendChild(o);
+  });
+
+  function owns(m, it){ return m.gear.indexOf(it) !== -1; }
+
+  function renderGear(){
+    var body = $("gearBody"), rc = $("resultCount");
+    if (!members.length || !items.length) {
+      $("gearFilters").hidden = true; rc.hidden = true;
+      if (!members.length && !items.length) body.innerHTML = emptyBox("아직 등록된 혈원과 장비 항목이 없습니다", "장비현황데이터.js 파일에 장비 항목과 혈원을 추가하면 이곳에 표시됩니다.");
+      else if (!members.length) body.innerHTML = emptyBox("아직 등록된 혈원이 없습니다", "장비현황데이터.js 파일의 혈원 목록에 추가하면 이곳에 표시됩니다.");
+      else body.innerHTML = emptyBox("아직 등록된 장비 항목이 없습니다", "장비현황데이터.js 파일의 장비항목에 추가하면 이곳에 표시됩니다.");
+      return;
+    }
+    var q = $("q").value.trim().toLowerCase();
+    var fi = $("fItem").value, fs = $("fState").value;
+    var list = members.filter(function(m){
+      if (q && m.name.toLowerCase().indexOf(q) === -1 && m.cls.toLowerCase().indexOf(q) === -1) return false;
+      if (fs) {
+        var has = fi ? owns(m, fi) : items.some(function(it){ return owns(m, it); });
+        if (fs === "own" && !has) return false;
+        if (fs === "none" && has) return false;
+      }
+      return true;
+    });
+    rc.hidden = false;
+    rc.textContent = "총 " + members.length + "명 중 " + list.length + "명 표시";
+    if (!list.length) { body.innerHTML = emptyBox("조건에 맞는 혈원이 없습니다", "검색어나 필터를 바꿔 보세요."); return; }
+    var h = '<div class="table-scroll"><table><thead><tr><th class="name">혈원</th>';
+    items.forEach(function(it){ h += '<th>' + esc(it) + '</th>'; });
+    h += '<th>보유</th></tr></thead><tbody>';
+    list.forEach(function(m){
+      var n = 0;
+      h += '<tr><td class="name"><b>' + esc(m.name) + '</b>' + (m.cls ? '<span class="cls">' + esc(m.cls) + '</span>' : '') + '</td>';
+      items.forEach(function(it){
+        var o = owns(m, it); if (o) n++;
+        h += '<td>' + (o ? '<span class="badge own">보유</span>' : '<span class="badge none">미보유</span>') + '</td>';
+      });
+      h += '<td class="cnt">' + n + ' / ' + items.length + '</td></tr>';
+    });
+    h += '</tbody></table></div>';
+    body.innerHTML = h;
+  }
+
+  function renderSpecial(){
+    var body = $("specialBody");
+    if (!specials.length) {
+      body.innerHTML = '<div class="panel">' + emptyBox("아직 등록된 특화템이 없습니다", "장비현황데이터.js 파일의 특화템에 추가하면 이곳에 표시됩니다.") + '</div>';
+      return;
+    }
+    var h = '<div class="grid">';
+    specials.forEach(function(sp){
+      var who = members.filter(function(m){ return m.sp.indexOf(sp) !== -1; });
+      h += '<div class="sp-card"><h3><span>' + esc(sp) + '</span><em>' + who.length + '명 보유</em></h3>';
+      if (who.length) {
+        h += '<div class="members">';
+        who.forEach(function(m){ h += '<span class="chip">' + esc(m.name) + '</span>'; });
+        h += '</div>';
+      } else {
+        h += '<div class="no">보유한 혈원이 없습니다</div>';
+      }
+      h += '</div>';
+    });
+    body.innerHTML = h + '</div>';
+  }
+
+  function renderPosts(){
+    var body = $("noticeBody");
+    if (!posts.length) {
+      body.innerHTML = '<div class="panel">' + emptyBox("아직 작성된 글이 없습니다", "장비현황데이터.js 파일의 공지에 글을 추가하면 이곳에 표시됩니다.") + '</div>';
+      return;
+    }
+    var h = '<div class="posts">';
+    posts.forEach(function(p){
+      h += '<article class="post">' + (str(p.날짜) ? '<time>' + esc(p.날짜) + '</time>' : '') +
+           '<h3>' + esc(p.제목) + '</h3><div class="body">' + esc(p.본문) + '</div></article>';
+    });
+    body.innerHTML = h + '</div>';
+  }
+
+  ["q","fItem","fState"].forEach(function(id){
+    $(id).addEventListener(id === "q" ? "input" : "change", renderGear);
+  });
+  renderGear(); renderSpecial(); renderPosts();
+})();
+</script>
+</body>
+</html>
