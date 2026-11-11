@@ -1,0 +1,54 @@
+rules_version = '2';
+// 누구나 읽기/쓰기 가능(비번 없음). 단 정해진 컬렉션·필드·길이만 허용해서 스팸/거대문서를 막습니다.
+// 페이지가 처음 저장할 때 자동으로 익명 로그인하므로, 쓰기는 '익명 로그인된 브라우저'만 가능합니다.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+    function isWriter() { return signedIn(); }
+    function strOk(v, lo, hi) { return v is string && v.size() >= lo && v.size() <= hi; }
+    function listOk(v, hi) { return v is list && v.size() <= hi; }
+    function stampNow() { return request.resource.data.updatedAt == request.time; }
+
+    // 장비 칸(열) 목록: cols = [{id, name}, ...]
+    match /settings/{doc} {
+      allow read: if true;
+      allow create, update: if isWriter() && doc == 'main'
+        && request.resource.data.keys().hasOnly(['clanName', 'cols', 'updatedAt'])
+        && strOk(request.resource.data.get('clanName', ''), 0, 40)
+        && listOk(request.resource.data.get('cols', []), 60)
+        && stampNow();
+      allow delete: if false;
+    }
+
+    // 혈원 한 줄 = 문서 1개 (문서ID == 아이디)
+    match /clanMembers/{id} {
+      allow read: if true;
+      allow create, update: if isWriter()
+        && request.resource.data.keys().hasOnly(['name', 'cls', 'cells', 'updatedAt'])
+        && strOk(request.resource.data.name, 1, 30)
+        && request.resource.data.name == id
+        && strOk(request.resource.data.cls, 0, 20)
+        && request.resource.data.cells is map
+        && request.resource.data.cells.size() <= 80
+        && stampNow();
+      allow delete: if isWriter();
+    }
+
+    // 공지/글
+    match /posts/{id} {
+      allow read: if true;
+      allow create, update: if isWriter()
+        && request.resource.data.keys().hasOnly(['date', 'title', 'body', 'updatedAt'])
+        && strOk(request.resource.data.date, 0, 10)
+        && strOk(request.resource.data.title, 1, 100)
+        && strOk(request.resource.data.body, 0, 5000)
+        && stampNow();
+      allow delete: if isWriter();
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
