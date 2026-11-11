@@ -1,50 +1,63 @@
 rules_version = '2';
-// 누구나 읽기/쓰기 가능(비번 없음). 단 정해진 컬렉션·필드·길이만 허용해서 스팸/거대문서를 막습니다.
-// 페이지가 처음 저장할 때 자동으로 익명 로그인하므로, 쓰기는 '익명 로그인된 브라우저'만 가능합니다.
+// 읽기: 누구나. 쓰기: 익명 로그인(자동)한 혈원은 "자기 줄"만 만들고 고칠 수 있음(uid로 주인 확인).
+// 삭제·초기화·다른 사람 줄 수정: 관리자(구글 로그인 dldmsdnr1228@gmail.com)만.
 service cloud.firestore {
   match /databases/{database}/documents {
 
     function signedIn() { return request.auth != null; }
-    function isWriter() { return signedIn(); }
+    function isAdmin() {
+      return signedIn()
+        && request.auth.token.email == 'dldmsdnr1228@gmail.com'
+        && request.auth.token.email_verified == true;
+    }
     function strOk(v, lo, hi) { return v is string && v.size() >= lo && v.size() <= hi; }
-    function listOk(v, hi) { return v is list && v.size() <= hi; }
     function stampNow() { return request.resource.data.updatedAt == request.time; }
-
-    // 장비 칸(열) 목록: cols = [{id, name}, ...]
-    match /settings/{doc} {
-      allow read: if true;
-      allow create, update: if isWriter() && doc == 'main'
-        && request.resource.data.keys().hasOnly(['clanName', 'cols', 'updatedAt'])
-        && strOk(request.resource.data.get('clanName', ''), 0, 40)
-        && listOk(request.resource.data.get('cols', []), 60)
+    // 장비 수량: 0 ~ 필요수량 정수. (앱.js 의 장비목록 need 와 같게 맞출 것)
+    function qty(c, k, need) { return !(k in c) || (c[k] is int && c[k] >= 0 && c[k] <= need); }
+    function cellsOk(c) {
+      return c is map
+        && c.keys().hasOnly(['ring', 'book', 'silpt', 'ejabelt', 'titanbelt', 'sword3', 'saengma', 'hyeongma'])
+        && qty(c, 'ring', 4) && qty(c, 'book', 2) && qty(c, 'silpt', 2) && qty(c, 'ejabelt', 2)
+        && qty(c, 'titanbelt', 2) && qty(c, 'sword3', 2) && qty(c, 'saengma', 2) && qty(c, 'hyeongma', 2);
+    }
+    function memberShape(id) {
+      let d = request.resource.data;
+      return d.keys().hasOnly(['name', 'sub', 'cls', 'cells', 'uid', 'updatedAt'])
+        && strOk(d.name, 1, 30) && d.name == id
+        && strOk(d.get('sub', ''), 0, 30)
+        && strOk(d.cls, 0, 20)
+        && cellsOk(d.cells)
+        && d.uid is string
         && stampNow();
-      allow delete: if false;
     }
 
     // 혈원 한 줄 = 문서 1개 (문서ID == 아이디)
     match /clanMembers/{id} {
       allow read: if true;
-      allow create, update: if isWriter()
-        && request.resource.data.keys().hasOnly(['name', 'cls', 'cells', 'updatedAt'])
-        && strOk(request.resource.data.name, 1, 30)
-        && request.resource.data.name == id
-        && strOk(request.resource.data.cls, 0, 20)
-        && request.resource.data.cells is map
-        && request.resource.data.cells.size() <= 80
-        && stampNow();
-      allow delete: if isWriter();
+      allow create: if signedIn() && memberShape(id) && request.resource.data.uid == request.auth.uid;
+      allow update: if signedIn() && memberShape(id)
+        && request.resource.data.uid == resource.data.uid
+        && (resource.data.uid == request.auth.uid || isAdmin());
+      allow delete: if isAdmin();
     }
 
-    // 공지/글
+    // 공지: 누구나 읽기, 쓰기·수정·삭제는 관리자만
     match /posts/{id} {
       allow read: if true;
-      allow create, update: if isWriter()
-        && request.resource.data.keys().hasOnly(['date', 'title', 'body', 'updatedAt'])
+      allow create, update: if isAdmin()
+        && request.resource.data.keys().hasOnly(['date', 'title', 'body', 'uid', 'updatedAt'])
         && strOk(request.resource.data.date, 0, 10)
         && strOk(request.resource.data.title, 1, 100)
         && strOk(request.resource.data.body, 0, 5000)
+        && request.resource.data.uid is string
         && stampNow();
-      allow delete: if isWriter();
+      allow delete: if isAdmin();
+    }
+
+    // 장비 칸은 페이지 코드에 고정. 설정 문서는 관리자만(향후 확장용)
+    match /settings/{doc} {
+      allow read: if true;
+      allow write: if isAdmin();
     }
 
     match /{document=**} {

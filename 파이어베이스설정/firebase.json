@@ -1,4 +1,13 @@
 {
   "firestore": { "rules": "firestore.rules" },
-  "auth": { "providers": { "anonymous": true } }
+  "auth": {
+    "providers": {
+      "anonymous": true,
+      "googleSignIn": {
+        "oAuthBrandDisplayName": "복희섭 장비보유현황",
+        "supportEmail": "dldmsdnr1228@gmail.com",
+        "authorizedRedirectUris": ["https://bokhui-gear-k7m2.firebaseapp.com/__/auth/handler"]
+      }
+    }
+  }
 }
