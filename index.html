@@ -161,7 +161,7 @@ footer{margin-top:40px; padding:20px 0 34px; border-top:1px solid var(--line); c
     </svg>
     <div>
       <h1>복희섭 장비보유현황</h1>
-      <p class="sub">내 아이디 입력 → 내 줄에 장비 적기 → 자동 저장</p>
+      <p class="sub">내 아이디 입력 → 장비 수량 누르기 → 자동 저장 · 누구나 수정 가능</p>
     </div>
   </div>
 </header>
@@ -174,7 +174,7 @@ footer{margin-top:40px; padding:20px 0 34px; border-top:1px solid var(--line); c
       <input class="inp" id="meId" maxlength="30" placeholder="본캐 아이디 (필수)" autocomplete="off">
       <input class="inp" id="meSub" maxlength="30" placeholder="부캐 아이디 (선택)" autocomplete="off">
       <button class="btn gold" type="submit">내 줄 열기</button>
-      <p class="tip">본캐+부캐(2클라) 기준으로 장비 수량을 적습니다. 처음이면 새 줄이 생기고, 이 기기에서 만든 줄은 다음에도 기억해서 바로 고칠 수 있어요.</p>
+      <p class="tip">본캐+부캐(2클라) 기준으로 장비 수량을 적습니다. 처음이면 새 줄이 생깁니다. 누구나 모든 줄을 고칠 수 있어요(템을 받았거나 줬으면 바로 고쳐 주세요).</p>
     </form>
     <div class="who" id="meWho" hidden>
       <span>내 아이디</span><b id="meName"></b>
@@ -185,7 +185,7 @@ footer{margin-top:40px; padding:20px 0 34px; border-top:1px solid var(--line); c
   </div>
 
   <div class="adminbar" id="adminBar" hidden>
-    <span>관리자 모드 — 모든 줄 수정·삭제 가능</span>
+    <span>관리자 모드 — 줄 삭제·초기화·공지 가능</span>
     <button class="btn sm red" type="button" id="btnReset">초기화</button>
     <button class="btn sm" type="button" id="btnAdminOut">관리자 로그아웃</button>
   </div>
@@ -211,6 +211,6 @@ footer{margin-top:40px; padding:20px 0 34px; border-top:1px solid var(--line); c
 
 <div class="modal" id="modal" hidden role="dialog" aria-modal="true"><div class="dlg" id="dlg"></div></div>
 
-<script type="module" src="앱.js"></script>
+<script type="module" src="앱.js?v=4"></script>
 </body>
 </html>

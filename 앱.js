@@ -1,6 +1,6 @@
 // 복희섭 장비보유현황 - 엑셀풍 표 + Firebase(Firestore) 실시간 저장
-// 읽기: 누구나 / 쓰기: 자기 줄만(이 기기에서 만든 줄, 익명 로그인 uid로 확인)
-// 삭제·초기화·남의 줄 수정: 관리자(구글 로그인 dldmsdnr1228@gmail.com)만 — 서버 보안 규칙이 강제합니다.
+// 읽기: 누구나 / 줄 만들기·수정: 누구나(모든 줄, 익명 로그인 자동)
+// 줄 삭제·초기화·공지: 관리자(구글 로그인 dldmsdnr1228@gmail.com)만 — 서버 보안 규칙이 강제합니다.
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
 import { getAuth, signInAnonymously, onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
 import {
@@ -54,14 +54,14 @@ const badName = (n) => !n || n === "." || n === ".." || /^__.*__$/.test(n);
 const qtyOf = (m, c) => { const v = Number(m.cells[c.id]); return Number.isInteger(v) && v >= 0 ? Math.min(v, c.need) : 0; };
 function errText(e) {
   const c = e && e.code ? String(e.code) : "";
-  if (c.includes("permission-denied")) return "권한이 없습니다(내 줄이 아니거나 허용되지 않는 값).";
+  if (c.includes("permission-denied")) return "권한이 없습니다(허용되지 않는 값이거나 관리자 전용).";
   if (c.includes("unavailable") || c.includes("network")) return "인터넷 연결을 확인해 주세요.";
   if (c.includes("popup")) return "로그인 창이 닫혔거나 막혔습니다.";
   return "실패했습니다 (" + (c || (e && e.message) || "오류") + ")";
 }
 async function ensureAuth() { if (!auth.currentUser) await signInAnonymously(auth); S.uid = auth.currentUser.uid; }
 function saveState(text, cls) { const el = $("saveState"); el.textContent = text; el.className = "save" + (cls ? " " + cls : ""); }
-const canEdit = (m) => !!m && (S.admin || (S.uid && m.uid === S.uid));
+const canEdit = (m) => !!m; // 누구나 모든 줄 수정 가능
 
 // ---------- 표 그리기 ----------
 const sheetBody = $("sheetBody");
@@ -128,19 +128,14 @@ function render() {
     const el = tr && [...tr.querySelectorAll("[data-f]")].find((i) => i.dataset.f === keep.f);
     if (el) { el.value = keep.v; el.focus({ preventScroll: true }); try { el.setSelectionRange(keep.s, keep.e); } catch (e) { /* select */ } }
   }
-  $("footCount").textContent = S.admin ? "관리자: 모든 줄 수정 가능" : "내 줄(금색)만 고칠 수 있어요";
+  $("footCount").textContent = S.admin ? "관리자: 줄 삭제·초기화 가능" : "누구나 모든 줄을 고칠 수 있어요 (내 줄은 금색)";
 }
 
 function renderMe() {
   const has = !!S.me;
   $("meForm").hidden = has; $("meWho").hidden = !has;
   $("meName").textContent = S.me;
-  const m = S.members.find((x) => x.name === S.me);
-  const w = $("meWarn");
-  if (has && S.loaded && m && !canEdit(m)) {
-    w.textContent = "이 아이디는 다른 기기(브라우저)에서 등록되어 여기서는 고칠 수 없습니다. 처음 등록한 기기에서 고치거나, 관리자에게 줄 삭제를 요청한 뒤 다시 등록하세요.";
-    w.hidden = false;
-  } else w.hidden = true;
+  $("meWarn").hidden = true;
 }
 function renderAdmin() { $("adminBar").hidden = !S.admin; $("btnAddPost").hidden = !S.admin; $("adminLink").textContent = S.admin ? "관리자 로그인됨" : "관리"; }
 
@@ -243,11 +238,9 @@ async function openMine(name, sub) {
     if (!snap.exists()) {
       await setDoc(ref, { name, sub: sub || "", cls: "", cells: {}, uid: auth.currentUser.uid, updatedAt: serverTimestamp() });
       saveState("새 줄을 만들었습니다", "ok");
-    } else if (snap.data().uid === auth.currentUser.uid || S.admin) {
+    } else {
       if (sub && sub !== snap.data().sub) await updateDoc(ref, { sub, updatedAt: serverTimestamp() });
       saveState("내 줄을 불러왔습니다", "ok");
-    } else {
-      saveState("이미 등록된 아이디입니다(다른 기기에서 등록)", "err");
     }
     S.me = name;
     try { localStorage.setItem(ME_KEY, name); } catch (e) { /* 무시 */ }

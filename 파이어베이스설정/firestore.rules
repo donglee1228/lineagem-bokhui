@@ -1,6 +1,6 @@
 rules_version = '2';
-// 읽기: 누구나. 쓰기: 익명 로그인(자동)한 혈원은 "자기 줄"만 만들고 고칠 수 있음(uid로 주인 확인).
-// 삭제·초기화·다른 사람 줄 수정: 관리자(구글 로그인 dldmsdnr1228@gmail.com)만.
+// 읽기: 누구나. 줄 만들기·수정: 익명 로그인(자동)한 누구나, 모든 줄(값 형식·범위는 아래에서 제한).
+// 줄 삭제·초기화·공지: 관리자(구글 로그인 dldmsdnr1228@gmail.com)만.
 service cloud.firestore {
   match /databases/{database}/documents {
 
@@ -36,8 +36,7 @@ service cloud.firestore {
       allow read: if true;
       allow create: if signedIn() && memberShape(id) && request.resource.data.uid == request.auth.uid;
       allow update: if signedIn() && memberShape(id)
-        && request.resource.data.uid == resource.data.uid
-        && (resource.data.uid == request.auth.uid || isAdmin());
+        && request.resource.data.uid == resource.data.uid;
       allow delete: if isAdmin();
     }
 
