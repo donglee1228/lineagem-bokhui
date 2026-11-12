@@ -19,7 +19,7 @@ const GROUPS = [
     { id: "titanbelt", name: "타이탄벨트", need: 2 },
     { id: "sword3", name: "3차검", need: 2 },
     { id: "saengma", name: "생마", need: 2 },
-    { id: "hyeongma", name: "형마", need: 2 }
+    { id: "hyeongma", name: "용인형", need: 2 } // 칸 id는 옛 형마 그대로(저장된 수량 유지)
   ] }
 ];
 const COLS = GROUPS.flatMap((g) => g.cols);
