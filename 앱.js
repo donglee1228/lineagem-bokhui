@@ -1,11 +1,11 @@
 // 복희섭 장비보유현황 - 엑셀풍 표 + Firebase(Firestore) 실시간 저장
 // 읽기: 누구나 / 줄 만들기·수정: 누구나(모든 줄, 익명 로그인 자동)
-// 줄 삭제·초기화·공지: 관리자(구글 로그인 dldmsdnr1228@gmail.com)만 — 서버 보안 규칙이 강제합니다.
+// 댓글: 누구나 쓰기 / 줄 삭제·초기화·댓글 삭제: 관리자(구글 로그인 dldmsdnr1228@gmail.com)만 — 서버 보안 규칙이 강제합니다.
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
 import { getAuth, signInAnonymously, onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
 import {
   getFirestore, doc, collection, onSnapshot, getDoc, getDocs, setDoc, addDoc, updateDoc, deleteDoc,
-  serverTimestamp, writeBatch
+  serverTimestamp, writeBatch, query, orderBy, limit
 } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
 
 // ===== 장비 목록 (그룹 → 칸). need = 필요 수량(본캐+부캐 2클라 기준) =====
@@ -38,7 +38,7 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 
 // ---------- 상태 ----------
-const S = { members: [], posts: [], uid: "", admin: false, loaded: false, editing: new Set() };
+const S = { members: [], comments: [], uid: "", admin: false, loaded: false, editing: new Set() };
 
 // ---------- 도우미 ----------
 const $ = (id) => document.getElementById(id);
@@ -76,8 +76,7 @@ function render() {
   }
   renderAdmin();
   if (!S.loaded) return;
-  const q = $("q").value.trim().toLowerCase();
-  const rows = S.members.filter((m) => S.editing.has(m.id) || !q || (m.name + " " + m.sub + " " + m.cls).toLowerCase().includes(q));
+  const rows = S.members;
 
   let h = '<table class="xl"><thead><tr class="grp"><th class="rn"></th><th class="nm"></th><th></th>';
   GROUPS.forEach((g) => { h += '<th class="g" colspan="' + g.cols.length + '">' + esc(g.name) + '</th>'; });
@@ -86,8 +85,7 @@ function render() {
   h += '<th>수정</th></tr></thead><tbody>';
   if (!rows.length) {
     h += '<tr><td class="rn"></td><td colspan="' + (COLS.length + 3) + '"><div class="empty"><b>' +
-         (S.members.length ? "검색 결과가 없습니다" : "아직 아무도 없습니다") + '</b>' +
-         (S.members.length ? "검색어를 바꿔 보세요." : "위의 '아이디 추가하기'를 눌러 아이디를 추가하세요.") + '</div></td></tr>';
+         "아직 아무도 없습니다</b>위의 '아이디 추가하기'를 눌러 아이디를 추가하세요.</div></td></tr>";
   }
   rows.forEach((m, i) => {
     const ed = S.editing.has(m.id);
@@ -130,17 +128,18 @@ function render() {
   }
 }
 
-function renderAdmin() { $("adminBar").hidden = !S.admin; $("btnAddPost").hidden = !S.admin; $("adminLink").textContent = S.admin ? "관리자 로그인됨" : "관리"; }
+function renderAdmin() { $("adminBar").hidden = !S.admin; $("adminLink").textContent = S.admin ? "관리자 로그인됨" : "관리"; }
 
-function renderPosts() {
-  const body = $("noticeBody");
-  if (!S.posts.length) { body.innerHTML = '<div class="panel"><div class="empty">아직 공지가 없습니다.</div></div>'; return; }
-  body.innerHTML = '<div class="posts">' + S.posts.map((p) => {
-    const mineP = S.admin; // 공지는 관리자만 쓰기·수정·삭제
-    return '<article class="post">' + (p.date ? '<time>' + esc(p.date) + '</time>' : '') + '<h3>' + esc(p.title) + '</h3><div class="body">' + esc(p.body) + '</div>' +
-      (mineP ? '<div class="pact"><button class="btn sm" type="button" data-editpost="' + esc(p.id) + '">수정</button>' +
-               '<button class="btn sm red" type="button" data-delpost="' + esc(p.id) + '">삭제</button></div>' : '') + '</article>';
-  }).join("") + '</div>';
+const CMT_KEY = "복희섭_댓글아이디";
+const fmtTime = (ms) => ms ? new Date(ms + 9 * 3600e3).toISOString().slice(5, 16).replace("T", " ") : "";
+function renderComments() {
+  $("cmtCount").textContent = S.comments.length;
+  const box = $("cmtList");
+  if (!S.comments.length) { box.innerHTML = '<div class="empty">아직 댓글이 없습니다.</div>'; return; }
+  box.innerHTML = S.comments.map((c) =>
+    '<div class="cm" data-cm="' + esc(c.id) + '"><div class="ch"><b>' + esc(c.name) + '</b><time>' + esc(fmtTime(c.t)) + '</time>' +
+    (S.admin ? '<button class="del" type="button" data-delcm="' + esc(c.id) + '" title="댓글 삭제" aria-label="댓글 삭제">✕</button>' : '') +
+    '</div><div class="cb">' + esc(c.body) + '</div></div>').join("");
 }
 
 // ---------- 실시간 구독 ----------
@@ -152,16 +151,16 @@ onSnapshot(collection(db, "clanMembers"), (qs) => {
   }).sort((a, b) => a.name.localeCompare(b.name, "ko"));
   S.loaded = true; render();
 }, (e) => { lastHtml = ""; sheetBody.innerHTML = '<div class="empty"><b>불러오지 못했습니다</b>' + esc(errText(e)) + '</div>'; });
-onSnapshot(collection(db, "posts"), (qs) => {
-  S.posts = qs.docs.map((d) => { const v = d.data(); return { id: d.id, uid: str(v.uid), date: str(v.date), title: str(v.title), body: v.body == null ? "" : String(v.body), t: tsMs(v.updatedAt) }; })
-    .filter((p) => p.title).sort((a, b) => b.date.localeCompare(a.date) || b.t - a.t);
-  renderPosts();
+onSnapshot(query(collection(db, "comments"), orderBy("createdAt", "desc"), limit(200)), (qs) => {
+  S.comments = qs.docs.map((d) => { const v = d.data({ serverTimestamps: "estimate" });
+    return { id: d.id, name: str(v.name), body: v.body == null ? "" : String(v.body), t: tsMs(v.createdAt) }; });
+  renderComments();
 }, () => {});
 
 onAuthStateChanged(auth, (u) => {
   S.uid = u ? u.uid : "";
   S.admin = !!(u && !u.isAnonymous && u.email === ADMIN_EMAIL && u.emailVerified);
-  render(); renderPosts();
+  render(); renderComments();
 });
 
 // ---------- 셀 편집 → 자동 저장 ----------
@@ -233,7 +232,7 @@ async function addId(name) {
       saveState("추가됨 ✓ " + name, "ok");
       S.editing.add(name); // 새 줄은 바로 개수를 고칠 수 있게
     }
-    $("q").value = ""; showAdd(false); render(); scrollToRow(name);
+    showAdd(false); render(); scrollToRow(name);
   } catch (e) { saveState(errText(e), "err"); }
 }
 $("btnAddId").addEventListener("click", () => showAdd(true));
@@ -244,7 +243,6 @@ $("meForm").addEventListener("submit", (e) => {
   if (badName(n)) { saveState("아이디를 입력하세요", "err"); $("meId").focus(); return; }
   addId(n);
 });
-$("q").addEventListener("input", render);
 
 // 표 클릭: 수량 −/+ / 수정하기·완료 / 줄 삭제(관리자)
 sheetBody.addEventListener("click", async (e) => {
@@ -291,47 +289,27 @@ $("btnReset").addEventListener("click", async () => {
   } catch (e) { saveState(errText(e), "err"); }
 });
 
-// ---------- 모달(공지) ----------
-const modal = $("modal"), dlg = $("dlg");
-function openModal(html) {
-  dlg.innerHTML = html; modal.hidden = false; document.body.style.overflow = "hidden";
-  const f = dlg.querySelector("[autofocus]"); if (f) setTimeout(() => f.focus(), 30);
-}
-function closeModal() { modal.hidden = true; dlg.innerHTML = ""; document.body.style.overflow = ""; }
-modal.addEventListener("click", (e) => { if (e.target === modal || e.target.closest("[data-close]")) closeModal(); });
-document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !modal.hidden) closeModal(); });
-function msg(t) { const m = dlg.querySelector(".msg"); if (m) m.textContent = t; }
-async function busy(fn) {
-  const bs = dlg.querySelectorAll("button"); bs.forEach((b) => b.disabled = true);
-  try { await ensureAuth(); await fn(); } catch (e) { msg(errText(e)); } finally { bs.forEach((b) => b.disabled = false); }
-}
-function postDlg(p) {
-  const isNew = !p; p = p || { date: today(), title: "", body: "" };
-  openModal('<h3>' + (isNew ? "공지 쓰기" : "공지 수정") + '</h3><form id="fPost">' +
-    '<label class="fld"><span>날짜</span><input id="pDate" type="date" value="' + esc(p.date) + '"></label>' +
-    '<label class="fld"><span>제목</span><input id="pTitle" maxlength="100" value="' + esc(p.title) + '" autocomplete="off"' + (isNew ? " autofocus" : "") + '></label>' +
-    '<label class="fld"><span>내용</span><textarea id="pBody" maxlength="5000">' + esc(p.body) + '</textarea></label>' +
-    '<div class="msg"></div><div class="acts"><button class="btn gold grow" type="submit">저장</button><button class="btn" type="button" data-close>취소</button></div></form>');
-  dlg.querySelector("#fPost").addEventListener("submit", (e) => {
-    e.preventDefault();
-    const data = { date: dlg.querySelector("#pDate").value.slice(0, 10), title: str(dlg.querySelector("#pTitle").value).slice(0, 100),
-                   body: dlg.querySelector("#pBody").value.replace(/\s+$/, "").slice(0, 5000), updatedAt: serverTimestamp() };
-    if (!data.title) { msg("제목을 입력하세요."); return; }
-    busy(async () => {
-      if (isNew) await addDoc(collection(db, "posts"), { ...data, uid: auth.currentUser.uid });
-      else await setDoc(doc(db, "posts", p.id), { ...data, uid: p.uid });
-      closeModal();
-    });
-  });
-}
-$("btnAddPost").addEventListener("click", () => postDlg(null));
-$("noticeBody").addEventListener("click", async (e) => {
-  const ed = e.target.closest("[data-editpost]");
-  if (ed) { const p = S.posts.find((x) => x.id === ed.dataset.editpost); if (p) postDlg(p); return; }
-  const dl = e.target.closest("[data-delpost]");
-  if (dl && confirm("이 글을 삭제할까요?")) {
-    try { await ensureAuth(); await deleteDoc(doc(db, "posts", dl.dataset.delpost)); } catch (err) { alert(errText(err)); }
+// ---------- 댓글 ----------
+try { $("cmtName").value = localStorage.getItem(CMT_KEY) || ""; } catch (e) { /* 저장소 막힘 */ }
+function cmtMsg(t, okay) { const m = $("cmtMsg"); m.textContent = t; m.className = "cmsg" + (okay ? " ok" : ""); }
+$("cmtForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const name = cleanName($("cmtName").value), body = $("cmtBody").value.trim().slice(0, 500);
+  if (!name) { cmtMsg("아이디를 입력하세요."); $("cmtName").focus(); return; }
+  if (!body) { cmtMsg("댓글 내용을 입력하세요."); $("cmtBody").focus(); return; }
+  const btn = $("cmtForm").querySelector("button[type=submit]"); btn.disabled = true;
+  try {
+    await ensureAuth();
+    await addDoc(collection(db, "comments"), { name, body, uid: auth.currentUser.uid, createdAt: serverTimestamp() });
+    $("cmtBody").value = ""; cmtMsg("댓글을 올렸습니다 ✓", true);
+    try { localStorage.setItem(CMT_KEY, name); } catch (err) { /* 무시 */ }
+  } catch (err) { cmtMsg(errText(err)); } finally { btn.disabled = false; }
+});
+$("cmtList").addEventListener("click", async (e) => {
+  const dl = e.target.closest("[data-delcm]");
+  if (dl && S.admin && confirm("이 댓글을 삭제할까요?")) {
+    try { await deleteDoc(doc(db, "comments", dl.dataset.delcm)); } catch (err) { alert(errText(err)); }
   }
 });
 
-render(); renderPosts();
+render(); renderComments();

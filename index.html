@@ -118,7 +118,33 @@ table.xl{border-collapse:separate; border-spacing:0; font-size:14px; min-width:1
 .empty b{display:block; color:var(--text); font-size:16px; margin-bottom:4px; font-weight:500}
 .foot{display:flex; justify-content:space-between; gap:10px; padding:8px 12px; font-size:12px; color:var(--dim); border-top:1px solid var(--line); flex-wrap:wrap}
 
-/* 공지(작게) */
+/* 안내 문구 · 댓글 */
+.lead{margin:14px 0 6px; padding:11px 14px; border:1px solid rgba(201,162,74,.45); background:rgba(201,162,74,.10); border-radius:9px; color:#f4f1e8; font-size:15px; font-weight:700; word-break:keep-all}
+.bar{min-height:18px; margin-bottom:6px}
+.cmt{margin-top:28px; background:var(--card); border:1px solid var(--line); border-radius:9px}
+.cmt summary{display:flex; align-items:center; justify-content:space-between; gap:10px; padding:12px 14px; cursor:pointer; list-style:none; user-select:none; font-family:"Noto Serif KR",serif; font-size:17px; font-weight:700; color:#f4f1e8}
+.cmt summary::-webkit-details-marker{display:none}
+.cmt summary .ct{border-left:3px solid var(--red2); padding-left:10px}
+.cmt summary .ct b{color:var(--gold2)}
+.cmt summary .fold{font-family:"Noto Sans KR",sans-serif; font-size:13px; font-weight:500; color:var(--muted); border:1px solid var(--line); border-radius:7px; padding:4px 10px}
+.cmt summary .fold::after{content:"펼치기 ▼"}
+.cmt[open] summary .fold::after{content:"접기 ▲"}
+.cmt[open] summary{border-bottom:1px solid var(--line)}
+#cmtForm{display:flex; flex-wrap:wrap; gap:8px; align-items:flex-start; padding:12px 14px}
+#cmtForm #cmtName{flex:0 1 160px; color:#f4f1e8}
+#cmtForm #cmtBody{flex:1 1 260px; min-height:44px; resize:vertical; color:#f4f1e8; font-size:16px; line-height:1.45}
+.cmsg{flex-basis:100%; min-height:16px; font-size:13px; color:#e07a7a}
+.cmsg.ok{color:var(--gold2)}
+#cmtList{padding:0 14px 6px}
+.cm{padding:10px 0; border-top:1px solid var(--grid)}
+.cm .ch{display:flex; align-items:baseline; gap:8px; font-size:14px}
+.cm .ch b{color:#f4f1e8}
+.cm .ch time{color:var(--dim); font-size:12px}
+.cm .ch .del{margin-left:auto; border:0; background:none; color:#c46a6a; font-size:15px; cursor:pointer}
+.cm .cb{white-space:pre-wrap; overflow-wrap:anywhere; font-size:14px; color:var(--text); margin-top:2px}
+@media (max-width:600px){ #cmtForm #cmtName{flex:1 1 100%} #cmtForm .btn{flex:1 1 100%} }
+
+/* (옛 공지 스타일) */
 .notice{margin-top:34px}
 .notice h2{font-family:"Noto Serif KR",serif; font-size:18px; margin:0; color:var(--text); border-left:3px solid var(--red2); padding-left:10px}
 .notice .nh{display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:12px}
@@ -182,32 +208,34 @@ footer{margin-top:40px; padding:20px 0 34px; border-top:1px solid var(--line); c
   </div>
 
   <div class="adminbar" id="adminBar" hidden>
-    <span>관리자 모드 — 줄 삭제·초기화·공지 가능</span>
+    <span>관리자 모드 — 줄 삭제·초기화·댓글 삭제 가능</span>
     <button class="btn sm red" type="button" id="btnReset">초기화</button>
     <button class="btn sm" type="button" id="btnAdminOut">관리자 로그아웃</button>
   </div>
 
-  <div class="bar" style="margin-top:12px">
-    <input class="inp" type="search" id="q" placeholder="아이디·클래스 검색" aria-label="검색">
-    <span class="save" id="saveState"></span>
-  </div>
+  <p class="lead" id="lead">부케릭 포함 총량입니다. 본캐 없으신 분들 위해 만들었어요.</p>
+  <div class="bar"><span class="save" id="saveState"></span></div>
 
   <div class="sheetbox">
     <div class="scroll" id="scroll"><div id="sheetBody"><div class="empty">불러오는 중…</div></div></div>
     <div class="foot"><span id="footCount"></span><span>줄 끝 [수정하기] → − / + 로 개수 수정 → [완료]</span></div>
   </div>
 
-  <section class="notice" id="notice">
-    <div class="nh"><h2>공지</h2><button class="btn sm" type="button" id="btnAddPost" hidden>+ 글쓰기</button></div>
-    <div id="noticeBody"></div>
-  </section>
+  <details class="cmt" id="cmt" open>
+    <summary><span class="ct">댓글 <b id="cmtCount">0</b></span><span class="fold"></span></summary>
+    <form id="cmtForm">
+      <input class="inp" id="cmtName" maxlength="30" placeholder="아이디" aria-label="아이디" autocomplete="off">
+      <textarea class="inp" id="cmtBody" maxlength="500" rows="2" placeholder="댓글을 적어 주세요" aria-label="댓글 내용"></textarea>
+      <button class="btn gold" type="submit">댓글 쓰기</button>
+      <span class="cmsg" id="cmtMsg"></span>
+    </form>
+    <div id="cmtList"></div>
+  </details>
 
 </main>
 
 <footer><div class="wrap">복희섭 서버 혈맹 장비보유현황<br><button class="adminlink" type="button" id="adminLink">관리</button></div></footer>
 
-<div class="modal" id="modal" hidden role="dialog" aria-modal="true"><div class="dlg" id="dlg"></div></div>
-
-<script type="module" src="앱.js?v=5"></script>
+<script type="module" src="앱.js?v=6"></script>
 </body>
 </html>

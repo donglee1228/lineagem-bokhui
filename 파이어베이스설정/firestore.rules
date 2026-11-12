@@ -53,6 +53,18 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    // 댓글: 누구나 읽기, 익명 로그인한 누구나 쓰기(아이디 1~30자·내용 1~500자). 수정 불가, 삭제는 관리자만
+    match /comments/{id} {
+      allow read: if true;
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly(['name', 'body', 'uid', 'createdAt'])
+        && strOk(request.resource.data.name, 1, 30)
+        && strOk(request.resource.data.body, 1, 500)
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.createdAt == request.time;
+      allow delete: if isAdmin();
+    }
+
     // 장비 칸은 페이지 코드에 고정. 설정 문서는 관리자만(향후 확장용)
     match /settings/{doc} {
       allow read: if true;
