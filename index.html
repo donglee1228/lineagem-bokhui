@@ -67,7 +67,7 @@ body{
 
 /* 시트(엑셀풍 표) */
 .sheetbox{background:var(--card); border:1px solid var(--line); border-radius:9px; box-shadow:0 8px 24px rgba(0,0,0,.25); overflow:hidden}
-.scroll{overflow:auto; max-height:72vh; max-height:72dvh; -webkit-overflow-scrolling:touch}
+.scroll{color-scheme:dark; overflow:auto; max-height:72vh; max-height:72dvh; -webkit-overflow-scrolling:touch}
 table.xl{border-collapse:separate; border-spacing:0; font-size:14px; min-width:100%}
 .xl th,.xl td{border-right:1px solid var(--grid); border-bottom:1px solid var(--grid); padding:0; height:38px; white-space:nowrap; text-align:center}
 .xl thead th{position:sticky; top:0; z-index:3; height:34px; background:#2f3440; color:var(--gold2); font-weight:700; font-size:13px; padding:0 12px; border-bottom:2px solid #4a4f5c}
@@ -87,13 +87,15 @@ table.xl{border-collapse:separate; border-spacing:0; font-size:14px; min-width:1
 .xl td.q.full .n{color:#1a1508; background:linear-gradient(180deg,#e0bd63,#b58f35)}
 .xl td.q.part .n{color:#f0a64a; background:rgba(224,140,40,.14); border:1px solid rgba(224,140,40,.45)}
 .xl td.q.zero .n{color:#535762}
-.xl td.q.tap{cursor:pointer; user-select:none; -webkit-tap-highlight-color:transparent}
-.xl td.q.tap .n{min-width:46px; padding:6px 8px; border:1px dashed #555a66}
-.xl td.q.tap.full .n,.xl td.q.tap.part .n{border-style:solid}
-.xl td.q.tap:active .n{transform:scale(.94)}
-.xl td.sum{min-width:64px; padding:0 8px; font-size:13px; color:var(--muted); font-variant-numeric:tabular-nums}
-.xl td.sum.all{color:var(--gold2); font-weight:700}
-.xl td.edit select{width:100%; min-width:84px; height:37px; border:0; background:rgba(0,0,0,.18); color:var(--gold2); font:inherit; font-weight:700; font-size:15px; padding:0 4px}
+.xl td.q.ed{min-width:112px; padding:0 3px}
+.xl td.q.ed .n{min-width:38px; padding:3px 4px}
+.xl .stp{width:30px; height:30px; border-radius:6px; border:1px solid #555a66; background:var(--card2); color:var(--gold2); font:inherit; font-size:18px; font-weight:700; line-height:1; cursor:pointer; padding:0; vertical-align:middle; user-select:none; -webkit-tap-highlight-color:transparent; touch-action:manipulation}
+.xl .stp:hover{border-color:var(--gold)}
+.xl .stp:active{transform:scale(.92); background:var(--ownbg)}
+.xl td.act{padding:0 6px}
+.xl td.act .btn{min-width:74px}
+.xl td.edit select{width:100%; min-width:72px; height:37px; border:0; background:#14161b; color:#f4f1e8; color-scheme:dark; font:inherit; font-weight:700; font-size:15px; padding:0 2px}
+.xl td.edit select option{background:#14161b; color:#f4f1e8}
 .xl td.edit select:focus{outline:2px solid var(--gold); outline-offset:-2px}
 .xl thead .nm{color:var(--gold2)}
 .xl thead th.nm small{margin-left:5px; font-size:11px; font-weight:500; color:var(--muted)}
@@ -103,7 +105,7 @@ table.xl{border-collapse:separate; border-spacing:0; font-size:14px; min-width:1
 .xl td.c{min-width:84px; padding:0 8px; color:var(--text)}
 .xl td.c .v{color:var(--gold2); font-weight:700}
 .xl td.c .e{color:#4a4e58}
-.xl td.cls{color:var(--muted); min-width:80px; padding:0 8px}
+.xl td.cls{color:var(--text); min-width:72px; padding:0 8px}
 .xl tr.mine td{background:#3a3424!important}
 .xl tr.mine td.rn{box-shadow:inset 3px 0 0 var(--gold); color:var(--gold2)}
 .xl tr.mine td.nm{color:var(--gold2)}
@@ -161,7 +163,7 @@ footer{margin-top:40px; padding:20px 0 34px; border-top:1px solid var(--line); c
     </svg>
     <div>
       <h1>복희섭 장비보유현황</h1>
-      <p class="sub">내 아이디 입력 → 장비 수량 누르기 → 자동 저장 · 누구나 수정 가능</p>
+      <p class="sub">아이디 추가하기 · 줄 끝 [수정하기] → 개수 −/+ → [완료] · 누구나 가능</p>
     </div>
   </div>
 </header>
@@ -169,19 +171,14 @@ footer{margin-top:40px; padding:20px 0 34px; border-top:1px solid var(--line); c
 <main class="wrap">
 
   <div class="me" id="meBox">
-    <form id="meForm">
-      <label for="meId">내 아이디</label>
-      <input class="inp" id="meId" maxlength="30" placeholder="본캐 아이디 (필수)" autocomplete="off">
-      <input class="inp" id="meSub" maxlength="30" placeholder="부캐 아이디 (선택)" autocomplete="off">
-      <button class="btn gold" type="submit">내 줄 열기</button>
-      <p class="tip">본캐+부캐(2클라) 기준으로 장비 수량을 적습니다. 처음이면 새 줄이 생깁니다. 누구나 모든 줄을 고칠 수 있어요(템을 받았거나 줬으면 바로 고쳐 주세요).</p>
+    <button class="btn gold" type="button" id="btnAddId">+ 아이디 추가하기</button>
+    <form id="meForm" hidden>
+      <label for="meId">아이디</label>
+      <input class="inp" id="meId" maxlength="30" placeholder="추가할 아이디" autocomplete="off">
+      <button class="btn gold" type="submit">완료</button>
+      <button class="btn" type="button" id="meCancel">취소</button>
     </form>
-    <div class="who" id="meWho" hidden>
-      <span>내 아이디</span><b id="meName"></b>
-      <button class="btn sm" type="button" id="meGo">내 줄로 이동</button>
-      <button class="btn sm" type="button" id="meChange">다른 아이디</button>
-      <p class="warn" id="meWarn" hidden></p>
-    </div>
+    <p class="tip" style="margin:8px 0 0">누구나 아이디를 추가하고, 줄 끝 [수정하기]로 장비 개수를 고칠 수 있어요. 템을 주고받았으면 바로 고쳐 주세요.</p>
   </div>
 
   <div class="adminbar" id="adminBar" hidden>
@@ -197,7 +194,7 @@ footer{margin-top:40px; padding:20px 0 34px; border-top:1px solid var(--line); c
 
   <div class="sheetbox">
     <div class="scroll" id="scroll"><div id="sheetBody"><div class="empty">불러오는 중…</div></div></div>
-    <div class="foot"><span id="footCount"></span><span>수량 칸을 누르면 0 → 필요수량까지 하나씩 올라가요</span></div>
+    <div class="foot"><span id="footCount"></span><span>줄 끝 [수정하기] → − / + 로 개수 수정 → [완료]</span></div>
   </div>
 
   <section class="notice" id="notice">
@@ -211,6 +208,6 @@ footer{margin-top:40px; padding:20px 0 34px; border-top:1px solid var(--line); c
 
 <div class="modal" id="modal" hidden role="dialog" aria-modal="true"><div class="dlg" id="dlg"></div></div>
 
-<script type="module" src="앱.js?v=4"></script>
+<script type="module" src="앱.js?v=5"></script>
 </body>
 </html>
