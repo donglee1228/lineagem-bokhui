@@ -190,9 +190,30 @@ footer{margin-top:40px; padding:20px 0 34px; border-top:1px solid var(--line); c
   .xl .nm{min-width:96px; max-width:120px}
   .save{margin-left:0; flex-basis:100%}
 }
+/* 사이트 비밀번호 */
+body.locked > :not(#gate){display:none !important}
+#gate{min-height:100vh; display:flex; align-items:center; justify-content:center; padding:16px}
+#gate[hidden]{display:none}
+#gate .box{width:100%; max-width:360px; background:var(--card); border:1px solid var(--line); border-top:3px solid var(--gold); border-radius:12px; padding:26px 22px; text-align:center}
+#gate h1{font-family:"Noto Serif KR",serif; font-size:21px; margin:0 0 6px; color:#f4f1e8}
+#gate p{margin:0 0 16px; font-size:14px; color:#aab0bd}
+#gate form{display:flex; gap:8px}
+#gate .inp{flex:1 1 auto; text-align:center; letter-spacing:4px; color:#f4f1e8}
+#gateMsg{min-height:20px; margin-top:12px; font-size:14px; color:#e07a7a}
 </style>
 </head>
-<body>
+<body class="locked">
+<div id="gate">
+  <div class="box">
+    <h1>복희섭 장비보유현황</h1>
+    <p>비밀번호를 입력하세요</p>
+    <form id="gateForm" autocomplete="off">
+      <input class="inp" id="gatePw" type="password" inputmode="numeric" maxlength="30" placeholder="비밀번호" aria-label="비밀번호">
+      <button class="btn gold" type="submit">입장</button>
+    </form>
+    <div id="gateMsg" role="alert"></div>
+  </div>
+</div>
 
 <header class="head">
   <div class="wrap">
@@ -273,6 +294,6 @@ footer{margin-top:40px; padding:20px 0 34px; border-top:1px solid var(--line); c
 
 <footer><div class="wrap">복희섭 서버 혈맹 장비보유현황<br><button class="adminlink" type="button" id="adminLink">관리</button></div></footer>
 
-<script type="module" src="앱.js?v=8"></script>
+<script type="module" src="앱.js?v=9"></script>
 </body>
 </html>

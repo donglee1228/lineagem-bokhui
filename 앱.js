@@ -1,5 +1,5 @@
 // 복희섭 장비보유현황 - 엑셀풍 표 + Firebase(Firestore) 실시간 저장
-// 읽기: 누구나 / 줄 만들기·수정: 누구나(모든 줄, 익명 로그인 자동)
+// 사이트 비밀번호를 통과한 사람만 읽기·쓰기(서버 규칙이 대조) / 줄 만들기·수정: 통과한 누구나(익명 로그인 자동)
 // 댓글: 누구나 쓰기 / 줄 삭제·초기화·댓글 삭제·'서버 기초' 글쓰기: 관리자(구글 로그인 dldmsdnr1228@gmail.com)만 — 서버 보안 규칙이 강제합니다.
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
 import { getAuth, signInAnonymously, onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
@@ -158,34 +158,80 @@ function renderBasic() {
                '<button class="btn sm red" type="button" data-delpost="' + esc(p.id) + '">삭제</button></div>' : '') + '</article>').join("") + '</div>';
 }
 
+// ---------- 사이트 비밀번호 ----------
+// 비밀번호는 이 파일에 없습니다. 서버 보안 규칙이 대조하고, 틀리면 표·댓글·글을 아예 내려주지 않습니다.
+const PW_KEY = "복희섭_비밀번호";
+let unsubs = [], grantSeq = 0;
+function lock(on, msg) {
+  document.body.classList.toggle("locked", on);
+  $("gate").hidden = !on;
+  if (msg !== undefined) $("gateMsg").textContent = msg;
+  if (on) { stopSubs(); try { $("gatePw").focus(); } catch (e) { /* 무시 */ } }
+}
+const savedPw = () => { try { return localStorage.getItem(PW_KEY) || ""; } catch (e) { return ""; } };
+async function grant(pw) { await ensureAuth(); await setDoc(doc(db, "access", auth.currentUser.uid), { key: pw }); }
+function stopSubs() { unsubs.forEach((f) => { try { f(); } catch (e) { /* 무시 */ } }); unsubs = []; }
+
 // ---------- 실시간 구독 ----------
-onSnapshot(collection(db, "clanMembers"), (qs) => {
-  S.members = qs.docs.map((d) => {
-    const v = d.data();
-    return { id: d.id, name: str(v.name) || d.id, sub: str(v.sub), cls: str(v.cls), uid: str(v.uid),
-             cells: (v.cells && typeof v.cells === "object") ? v.cells : {} };
-  }).sort((a, b) => a.name.localeCompare(b.name, "ko"));
-  S.loaded = true; render();
-}, (e) => { lastHtml = ""; sheetBody.innerHTML = '<div class="empty"><b>불러오지 못했습니다</b>' + esc(errText(e)) + '</div>'; });
-onSnapshot(query(collection(db, "comments"), orderBy("createdAt", "desc"), limit(200)), (qs) => {
-  S.comments = qs.docs.map((d) => { const v = d.data({ serverTimestamps: "estimate" });
-    return { id: d.id, name: str(v.name), body: v.body == null ? "" : String(v.body), t: tsMs(v.createdAt) }; });
-  renderComments();
-}, () => {});
+function startSubs() {
+  stopSubs();
+  unsubs.push(onSnapshot(collection(db, "clanMembers"), (qs) => {
+    S.members = qs.docs.map((d) => {
+      const v = d.data();
+      return { id: d.id, name: str(v.name) || d.id, sub: str(v.sub), cls: str(v.cls), uid: str(v.uid),
+               cells: (v.cells && typeof v.cells === "object") ? v.cells : {} };
+    }).sort((a, b) => a.name.localeCompare(b.name, "ko"));
+    S.loaded = true; render();
+  }, (e) => { lastHtml = ""; sheetBody.innerHTML = '<div class="empty"><b>불러오지 못했습니다</b>' + esc(errText(e)) + '</div>'; }));
+  unsubs.push(onSnapshot(query(collection(db, "comments"), orderBy("createdAt", "desc"), limit(200)), (qs) => {
+    S.comments = qs.docs.map((d) => { const v = d.data({ serverTimestamps: "estimate" });
+      return { id: d.id, name: str(v.name), body: v.body == null ? "" : String(v.body), t: tsMs(v.createdAt) }; });
+    renderComments();
+  }, () => {}));
+  unsubs.push(onSnapshot(collection(db, "posts"), (qs) => {
+    S.posts = qs.docs.map((d) => { const v = d.data({ serverTimestamps: "estimate" });
+      return { id: d.id, uid: str(v.uid), date: str(v.date), title: str(v.title), body: v.body == null ? "" : String(v.body),
+               order: Number(v.order) || tsMs(v.updatedAt) }; })
+      .filter((p) => p.title).sort((a, b) => a.order - b.order);
+    renderBasic();
+  }, () => {}));
+}
 
-onSnapshot(collection(db, "posts"), (qs) => {
-  S.posts = qs.docs.map((d) => { const v = d.data({ serverTimestamps: "estimate" });
-    return { id: d.id, uid: str(v.uid), date: str(v.date), title: str(v.title), body: v.body == null ? "" : String(v.body),
-             order: Number(v.order) || tsMs(v.updatedAt) }; })
-    .filter((p) => p.title).sort((a, b) => a.order - b.order);
-  renderBasic();
-}, () => {});
-
-onAuthStateChanged(auth, (u) => {
+if (savedPw()) $("gate").hidden = true; // 이미 통과한 기기는 비밀번호 화면을 깜빡 보여주지 않음
+onAuthStateChanged(auth, async (u) => {
   S.uid = u ? u.uid : "";
   S.admin = !!(u && !u.isAnonymous && u.email === ADMIN_EMAIL && u.emailVerified);
   if (!S.admin) S.postEdit = null;
   render(); renderComments(); renderBasic();
+  // 로그인 상태가 바뀌면(첫 접속·관리자 로그인/로그아웃) 저장된 비밀번호로 다시 통과 처리
+  const pw = savedPw(), seq = ++grantSeq;
+  if (!pw) { lock(true); return; }
+  try {
+    if (!u) { await signInAnonymously(auth); return; } // 익명 로그인되면 이 함수가 다시 불림
+    await grant(pw);
+    if (seq !== grantSeq) return;
+    lock(false, ""); startSubs();
+  } catch (e) {
+    if (seq !== grantSeq) return;
+    const denied = String(e && e.code || "").includes("permission-denied");
+    if (denied) { try { localStorage.removeItem(PW_KEY); } catch (err) { /* 무시 */ } }
+    lock(true, denied ? "비밀번호가 바뀌었습니다. 다시 입력하세요." : errText(e));
+  }
+});
+$("gateForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const pw = $("gatePw").value.trim();
+  if (!pw) { $("gateMsg").textContent = "비밀번호를 입력하세요."; return; }
+  const btn = $("gateForm").querySelector("button"); btn.disabled = true; $("gateMsg").textContent = "확인 중…";
+  try {
+    ++grantSeq;
+    await grant(pw);
+    try { localStorage.setItem(PW_KEY, pw); } catch (err) { /* 무시 */ }
+    $("gatePw").value = ""; lock(false, ""); startSubs();
+  } catch (err) {
+    $("gateMsg").textContent = String(err && err.code || "").includes("permission-denied") ? "비밀번호가 틀렸습니다." : errText(err);
+    $("gatePw").select();
+  } finally { btn.disabled = false; }
 });
 
 // ---------- 셀 편집 → 자동 저장 ----------
