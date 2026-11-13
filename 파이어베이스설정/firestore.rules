@@ -40,14 +40,15 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
-    // 공지: 누구나 읽기, 쓰기·수정·삭제는 관리자만
+    // '서버 기초' 글: 누구나 읽기, 쓰기·수정·삭제는 관리자만
     match /posts/{id} {
       allow read: if true;
       allow create, update: if isAdmin()
-        && request.resource.data.keys().hasOnly(['date', 'title', 'body', 'uid', 'updatedAt'])
+        && request.resource.data.keys().hasOnly(['date', 'title', 'body', 'uid', 'order', 'updatedAt'])
+        && request.resource.data.get('order', 0) is number
         && strOk(request.resource.data.date, 0, 10)
         && strOk(request.resource.data.title, 1, 100)
-        && strOk(request.resource.data.body, 0, 5000)
+        && strOk(request.resource.data.body, 0, 20000)
         && request.resource.data.uid is string
         && stampNow();
       allow delete: if isAdmin();

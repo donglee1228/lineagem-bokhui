@@ -1,6 +1,6 @@
 // 복희섭 장비보유현황 - 엑셀풍 표 + Firebase(Firestore) 실시간 저장
 // 읽기: 누구나 / 줄 만들기·수정: 누구나(모든 줄, 익명 로그인 자동)
-// 댓글: 누구나 쓰기 / 줄 삭제·초기화·댓글 삭제: 관리자(구글 로그인 dldmsdnr1228@gmail.com)만 — 서버 보안 규칙이 강제합니다.
+// 댓글: 누구나 쓰기 / 줄 삭제·초기화·댓글 삭제·'서버 기초' 글쓰기: 관리자(구글 로그인 dldmsdnr1228@gmail.com)만 — 서버 보안 규칙이 강제합니다.
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
 import { getAuth, signInAnonymously, onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
 import {
@@ -38,7 +38,7 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 
 // ---------- 상태 ----------
-const S = { members: [], comments: [], uid: "", admin: false, loaded: false, editing: new Set() };
+const S = { members: [], comments: [], posts: [], postEdit: null, uid: "", admin: false, loaded: false, editing: new Set() };
 
 // ---------- 도우미 ----------
 const $ = (id) => document.getElementById(id);
@@ -142,6 +142,22 @@ function renderComments() {
     '</div><div class="cb">' + esc(c.body) + '</div></div>').join("");
 }
 
+// ---------- 서버 기초(글) ----------
+function renderBasic() {
+  $("btnAddPost").hidden = !S.admin || S.postEdit !== null;
+  $("postForm").hidden = !S.admin || S.postEdit === null;
+  const box = $("postList");
+  if (!S.posts.length) {
+    box.innerHTML = '<div class="panel"><div class="empty"><b>아직 글이 없습니다</b>' +
+      (S.admin ? "위의 [+ 글쓰기]로 첫 글을 적어 보세요." : "글은 관리자 로그인(맨 아래 '관리') 후 쓸 수 있습니다.") + '</div></div>';
+    return;
+  }
+  box.innerHTML = '<div class="posts">' + S.posts.map((p) =>
+    '<article class="post" data-post="' + esc(p.id) + '"><h3>' + esc(p.title) + '</h3><div class="body">' + esc(p.body) + '</div>' +
+    (S.admin ? '<div class="pact"><button class="btn sm" type="button" data-editpost="' + esc(p.id) + '">수정</button>' +
+               '<button class="btn sm red" type="button" data-delpost="' + esc(p.id) + '">삭제</button></div>' : '') + '</article>').join("") + '</div>';
+}
+
 // ---------- 실시간 구독 ----------
 onSnapshot(collection(db, "clanMembers"), (qs) => {
   S.members = qs.docs.map((d) => {
@@ -157,10 +173,19 @@ onSnapshot(query(collection(db, "comments"), orderBy("createdAt", "desc"), limit
   renderComments();
 }, () => {});
 
+onSnapshot(collection(db, "posts"), (qs) => {
+  S.posts = qs.docs.map((d) => { const v = d.data({ serverTimestamps: "estimate" });
+    return { id: d.id, uid: str(v.uid), date: str(v.date), title: str(v.title), body: v.body == null ? "" : String(v.body),
+             order: Number(v.order) || tsMs(v.updatedAt) }; })
+    .filter((p) => p.title).sort((a, b) => a.order - b.order);
+  renderBasic();
+}, () => {});
+
 onAuthStateChanged(auth, (u) => {
   S.uid = u ? u.uid : "";
   S.admin = !!(u && !u.isAnonymous && u.email === ADMIN_EMAIL && u.emailVerified);
-  render(); renderComments();
+  if (!S.admin) S.postEdit = null;
+  render(); renderComments(); renderBasic();
 });
 
 // ---------- 셀 편집 → 자동 저장 ----------
@@ -312,4 +337,49 @@ $("cmtList").addEventListener("click", async (e) => {
   }
 });
 
-render(); renderComments();
+// ---------- 탭 ----------
+function showTab(basic) {
+  $("tabGear").hidden = basic; $("tabBasic").hidden = !basic;
+  $("tabBtnGear").classList.toggle("on", !basic); $("tabBtnBasic").classList.toggle("on", basic);
+  $("tabBtnGear").setAttribute("aria-selected", String(!basic)); $("tabBtnBasic").setAttribute("aria-selected", String(basic));
+  try { history.replaceState(null, "", basic ? "#기초" : location.pathname + location.search); } catch (e) { /* 무시 */ }
+}
+$("tabBtnGear").addEventListener("click", () => showTab(false));
+$("tabBtnBasic").addEventListener("click", () => showTab(true));
+let hash0 = ""; try { hash0 = decodeURIComponent(location.hash); } catch (e) { /* 무시 */ }
+showTab(hash0 === "#기초");
+
+// ---------- 서버 기초 글쓰기(관리자) ----------
+function openPostForm(p) {
+  S.postEdit = p ? p.id : "new";
+  $("postTitle").value = p ? p.title : ""; $("postBody").value = p ? p.body : "";
+  $("postFormTitle").textContent = p ? "글 수정" : "글쓰기"; $("postMsg").textContent = "";
+  renderBasic(); $("postForm").scrollIntoView({ block: "nearest" }); $("postTitle").focus();
+}
+function closePostForm() { S.postEdit = null; renderBasic(); }
+$("btnAddPost").addEventListener("click", () => openPostForm(null));
+$("postCancel").addEventListener("click", closePostForm);
+$("postForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  if (!S.admin) return;
+  const title = str($("postTitle").value).slice(0, 100), body = $("postBody").value.replace(/\s+$/, "").slice(0, 20000);
+  if (!title) { $("postMsg").textContent = "제목을 입력하세요."; $("postTitle").focus(); return; }
+  const btn = $("postForm").querySelector("button[type=submit]"); btn.disabled = true;
+  try {
+    const old = S.posts.find((x) => x.id === S.postEdit);
+    if (old) await setDoc(doc(db, "posts", old.id), { date: old.date, title, body, uid: old.uid, order: old.order, updatedAt: serverTimestamp() });
+    else await addDoc(collection(db, "posts"), { date: today(), title, body, uid: auth.currentUser.uid, order: Date.now(), updatedAt: serverTimestamp() });
+    closePostForm();
+  } catch (err) { $("postMsg").textContent = errText(err); } finally { btn.disabled = false; }
+});
+$("postList").addEventListener("click", async (e) => {
+  if (!S.admin) return;
+  const ed = e.target.closest("[data-editpost]");
+  if (ed) { const p = S.posts.find((x) => x.id === ed.dataset.editpost); if (p) openPostForm(p); return; }
+  const dl = e.target.closest("[data-delpost]");
+  if (dl && confirm("이 글을 삭제할까요?")) {
+    try { await deleteDoc(doc(db, "posts", dl.dataset.delpost)); } catch (err) { alert(errText(err)); }
+  }
+});
+
+render(); renderComments(); renderBasic();
